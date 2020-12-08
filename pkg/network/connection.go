@@ -205,6 +205,7 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 		onRead: func() bool {
 			if c.readEnabled {
 				err := c.doRead()
+				//fmt.Println("do read err", err, c.readBuffer)
 
 				if err != nil {
 					if te, ok := err.(net.Error); ok && te.Timeout() {
@@ -240,7 +241,11 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 
 		onHup: func() bool {
 			log.DefaultLogger.Errorf("[network] [event loop] [onHup] ReadHup error. Connection = %d, Remote Address = %s", c.id, c.RemoteAddr().String())
-			c.Close(api.NoFlush, api.RemoteClose)
+			err := c.Close(api.NoFlush, api.RemoteClose)
+			if err != nil {
+				fmt.Println("onHup:", err)
+			}
+			// c.eventLoop.unregisterRead(c.file.Fd())
 			return false
 		},
 	})
@@ -314,11 +319,12 @@ func (c *connection) scheduleWrite() {
 			//	runtime.Gosched()
 			//}
 
+			outer:
 			for i := 0; i < 10; i++ {
 				select {
 				case buf, ok := <-c.writeBufferChan:
 					if !ok {
-						return
+						break outer
 					}
 					c.appendBuffer(buf)
 				default:
@@ -584,7 +590,8 @@ func (c *connection) Write(buffers ...buffer.IoBuffer) (err error) {
 			err = c.writeDirectly(&buffers)
 		}
 	} else {
-		if atomic.LoadUint32(&c.connected) == 1 {
+		if atomic.LoadUint32(&c.connected) != 1 {
+			//fmt.Println(c.connected, c)
 			return fmt.Errorf("can note schedule write on the un-connected connection %d", c.id)
 		}
 
