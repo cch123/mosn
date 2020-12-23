@@ -91,7 +91,7 @@ type Conn struct {
 
 	// input/output
 	in, out   halfConn
-	rawInput  bytes.Buffer // raw input, starting with a record header
+	rawInput  *bytes.Buffer // raw input, starting with a record header
 	input     bytes.Reader // application data waiting to be read, from rawInput.Next
 	hand      bytes.Buffer // handshake data waiting to be read
 	outBuf    []byte       // scratch buffer used by out.encrypt
@@ -571,6 +571,12 @@ func (c *Conn) readChangeCipherSpec() error {
 	return c.readRecordOrCCS(true)
 }
 
+var bytesBufferPool = sync.Pool{
+	New : func() interface{} {
+		return bytes.NewBuffer([]byte{})
+	},
+}
+
 // readRecordOrCCS reads one or more TLS records from the connection and
 // updates the record layer state. Some invariants:
 //   * c.in must be locked
@@ -594,6 +600,10 @@ func (c *Conn) readRecordOrCCS(expectChangeCipherSpec bool) error {
 		return c.in.setErrorLocked(errors.New("tls: internal error: attempted to read record with pending application data"))
 	}
 	c.input.Reset(nil)
+
+	if c.rawInput == nil {
+		c.rawInput = bytesBufferPool.Get().(*bytes.Buffer)
+	}
 
 	// Read header, payload.
 	if err := c.readFromUntil(c.conn, recordHeaderLen); err != nil {
@@ -1280,6 +1290,11 @@ func (c *Conn) Read(b []byte) (int, error) {
 		if err := c.readRecord(); err != nil {
 			return n, err // will be io.EOF on closeNotify
 		}
+	}
+
+	if c.input.Len() == 0 && c.rawInput.Len() == 0 {
+		bytesBufferPool.Put(c.rawInput)
+		c.rawInput = nil
 	}
 
 	return n, nil

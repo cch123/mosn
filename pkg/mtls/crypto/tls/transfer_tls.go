@@ -65,7 +65,7 @@ func TransferTLSConn(conn net.Conn, info *TransferTLSInfo) *Conn {
 	}
 
 	if info.RawInput != nil {
-		c.rawInput = *bytes.NewBuffer(info.RawInput)
+		c.rawInput = bytes.NewBuffer(info.RawInput)
 		info.RawInput = nil
 	}
 
@@ -150,7 +150,7 @@ func (c *Conn) GetTLSInfo() *TransferTLSInfo {
 	c.info.OutSeq = c.out.seq
 	if c.rawInput.Len() != 0 {
 		tmpBuf := bytes.NewBuffer(make([]byte, c.rawInput.Len()))
-		io.Copy(tmpBuf, &c.rawInput)
+		io.Copy(tmpBuf, c.rawInput)
 		c.info.RawInput = tmpBuf.Next(tmpBuf.Len())
 	}
 
