@@ -18,9 +18,11 @@
 package network
 
 import (
+	"fmt"
 	"os"
 	"runtime"
 	"sync/atomic"
+	"time"
 
 	"github.com/mosn/easygo/netpoll"
 	atomicex "go.uber.org/atomic"
@@ -30,7 +32,7 @@ import (
 
 var (
 	// UseNetpollMode indicates which mode should be used for connection IO processing
-	UseNetpollMode = false
+	UseNetpollMode = true //false
 
 	// read/write goroutine pool
 	readPool  = mosnsync.NewWorkerPool(4 * runtime.NumCPU())
@@ -99,6 +101,7 @@ func (el *eventLoop) registerRead(conn *connection, handler *connEventHandler) e
 
 	readCallback := func(e netpoll.Event) {
 		// No more calls will be made for conn until we call epoll.Resume().
+		fmt.Println("## wake up", time.Now(), conn.RemoteAddr(), conn.LocalAddr())
 		readPool.ScheduleAuto(func() {
 			if !handler.onRead() {
 				return
@@ -109,6 +112,7 @@ func (el *eventLoop) registerRead(conn *connection, handler *connEventHandler) e
 				return
 			}
 
+			fmt.Println("## resume event",time.Now(), conn.RemoteAddr(), conn.LocalAddr())
 			err := el.poller.Resume(conn.poll.ev.readDesc)
 			if err != nil {
 				log.DefaultLogger.Errorf("RESUME failed, err : %v, desc : %v, raddr : %v, laddr : %v", err,

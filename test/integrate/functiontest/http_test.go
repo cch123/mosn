@@ -56,7 +56,7 @@ func (h *MethodHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // http.MethodConnect is quite different from other method
 // http.MethodHead have bugs on http2, needs to fix
-var allMethods = []string{http.MethodDelete, http.MethodGet, http.MethodOptions, http.MethodPatch, http.MethodPost, http.MethodPut, http.MethodTrace}
+var allMethods = []string{http.MethodDelete}//, http.MethodGet, http.MethodOptions, http.MethodPatch, http.MethodPost, http.MethodPut, http.MethodTrace}
 
 type HTTPCase struct {
 	*integrate.TestCase
@@ -119,24 +119,28 @@ func (c *HTTPCase) runCaseWithClient(client *http.Client, n, interval int) {
 }
 
 func TestHTTPMethod(t *testing.T) {
-	appaddr := "127.0.0.1:8080"
+	//appaddr := "127.0.0.1:8080"
 	// support non-tls/tls/proxy mode
 	for _, f := range []func(c *HTTPCase){
+		/*
 		func(c *HTTPCase) {
 			c.Start(false)
 		},
+		 */
 		func(c *HTTPCase) {
 			c.Start(true)
 		},
+		/*
 		func(c *HTTPCase) {
 			c.StartProxy()
 		},
+		 */
 	} {
 		testCases := []*HTTPCase{
 			NewHTTPCase(t, protocol.HTTP1, protocol.HTTP1, util.NewHTTPServer(t, &MethodHTTPHandler{})),
-			NewHTTPCase(t, protocol.HTTP1, protocol.HTTP2, util.NewHTTPServer(t, &MethodHTTPHandler{})),
-			NewHTTPCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, &MethodHTTPHandler{})),
-			NewHTTPCase(t, protocol.HTTP2, protocol.HTTP1, util.NewUpstreamHTTP2(t, appaddr, &MethodHTTPHandler{})),
+			//NewHTTPCase(t, protocol.HTTP1, protocol.HTTP2, util.NewHTTPServer(t, &MethodHTTPHandler{})),
+			//NewHTTPCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, &MethodHTTPHandler{})),
+			//NewHTTPCase(t, protocol.HTTP2, protocol.HTTP1, util.NewUpstreamHTTP2(t, appaddr, &MethodHTTPHandler{})),
 		}
 		for i, tc := range testCases {
 			t.Logf("start case #%d\n", i)

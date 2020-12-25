@@ -20,6 +20,7 @@ package network
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"math/rand"
 	"net"
@@ -207,6 +208,7 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 
 	// create a new timer and bind it to connection
 	c.poll.readTimeoutTimer = time.AfterFunc(buffer.ConnReadTimeout, func() {
+		fmt.Println("$$$$$$$$$$$ timeout callback, should heartbeat")
 		for _, cb := range c.connCallbacks {
 			cb.OnEvent(api.OnReadTimeout) // run read timeout callback, for keep alive if configured
 		}
@@ -242,12 +244,15 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 
 				var err error
 				for {
+					fmt.Println("###call doRead", time.Now(), c.RemoteAddr(), c.LocalAddr())
 					_, err = c.doRead()
+					fmt.Println("###call doRead done", time.Now(), c.readBuffer.String(), err, c.RemoteAddr(), c.LocalAddr())
 					if err != nil {
 						break
 					}
 
-					if c, ok := c.rawConnection.(*mtls.TLSConn); ok && c.Conn.HasMoreData() {
+					if tlsConn, ok := c.rawConnection.(*mtls.TLSConn); ok && tlsConn.Conn.HasMoreData() {
+						fmt.Println("tls conn continue", c.RemoteAddr(), c.LocalAddr())
 						continue
 					}
 
@@ -258,7 +263,8 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 				// mainly for heartbeat request
 				if err == nil {
 					// read err is nil, start timer
-					c.poll.readTimeoutTimer.Reset(buffer.ConnReadTimeout)
+					r := c.poll.readTimeoutTimer.Reset(buffer.ConnReadTimeout)
+					fmt.Println("reset timer", r)
 					return true
 				}
 
@@ -516,6 +522,7 @@ func (c *connection) doRead() (readAgain bool, err error) {
 			c.id, c.rawConnection.LocalAddr(), c.RemoteAddr())
 	}
 
+	fmt.Println("on Read", time.Now(), c.RemoteAddr(), c.LocalAddr(), c.GetReadBuffer().String())
 	c.onRead(bytesRead)
 	return
 }

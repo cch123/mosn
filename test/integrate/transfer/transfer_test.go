@@ -79,8 +79,8 @@ func startTransferServer(tc *integrate.XTestCase) {
 }
 
 func TestTransfer(t *testing.T) {
-	// todo: fix this?
 	// netpoll mode does not support transfer
+	// todo: fix this?
 	if network.UseNetpollMode {
 		return
 	}

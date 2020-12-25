@@ -2,6 +2,7 @@ package functiontest
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"sync/atomic"
 	"testing"
@@ -29,6 +30,7 @@ func (s *heartBeatServer) ServeBoltOrHeartbeat(t *testing.T, conn net.Conn) {
 		if req, ok := cmd.(*bolt.Request); ok {
 			var iobufresp types.IoBuffer
 			var err error
+			fmt.Println("?????bolt or hb?????", req.CmdCode, req.CmdType)
 			switch req.CmdCode {
 			case bolt.CmdCodeHeartbeat:
 				hbAck := s.boltProto.Reply(req)
